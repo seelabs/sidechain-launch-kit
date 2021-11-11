@@ -27,6 +27,12 @@ class Ports:
     ws_public_port_base = 6005
 
     def __init__(self: Ports, cfg_index: int) -> None:
+        """
+        Initialize a Ports.
+
+        Args:
+            cfg_index: The port number the set of ports should start at.
+        """
         self.peer_port = Ports.peer_port_base + cfg_index
         self.http_admin_port = Ports.http_admin_port_base + cfg_index
         self.ws_public_port = Ports.ws_public_port_base + (2 * cfg_index)
@@ -44,6 +50,17 @@ class XChainAsset:
         main_refund_penalty: Union[int, float],
         side_refund_penalty: Union[int, float],
     ) -> None:
+        """
+        Initialize an XChainAsset.
+
+        Args:
+            main_asset: Mainchain asset.
+            side_asset: Sidechain asset equivalent.
+            main_value: Value of the mainchain asset.
+            side_value: Value of the sidechain asset.
+            main_refund_penalty: ???
+            side_refund_penalty: ???
+        """
         self.main_asset = same_amount_new_value(main_asset, main_value)
         self.side_asset = same_amount_new_value(side_asset, side_value)
         self.main_refund_penalty = same_amount_new_value(

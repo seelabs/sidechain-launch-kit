@@ -24,6 +24,14 @@ class ChainBase:
         self: ChainBase,
         node: Node,
     ) -> None:
+        """
+        Initialize a ChainBase.
+
+        Note: Do not use this __init__, only use it with Chain.
+
+        Args:
+            node: The node to use with this chain.
+        """
         self.node = node
 
         self.key_manager = KeyManager()
