@@ -10,6 +10,8 @@ from slk.classes.common import same_amount_new_value
 
 @dataclass
 class Keypair:
+    """Stores keypairs for nodes."""
+
     public_key: str
     secret_key: str
     account_id: Optional[str]
@@ -41,6 +43,8 @@ class Ports:
 
 
 class XChainAsset:
+    """Representation of a cross-chain asset."""
+
     def __init__(
         self: XChainAsset,
         main_asset: Amount,

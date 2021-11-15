@@ -21,7 +21,7 @@ from slk.classes.common import Account
 
 
 class Chain(ChainBase):
-    """Representation of one chain (mainchain/sidechain)"""
+    """Representation of one chain (mainchain/sidechain)."""
 
     def send_signed(self: Chain, txn: Transaction) -> Dict[str, Any]:
         """Sign then send the given transaction"""
