@@ -1,12 +1,13 @@
 import logging
 import pprint
+import math
 import time
 from contextlib import contextmanager
 from typing import Optional
 
 from tabulate import tabulate
 from xrpl.clients import JsonRpcClient
-from xrpl.models import XRP, AccountTx, Amount, IssuedCurrencyAmount
+from xrpl.models import XRP, AccountTx, Amount, get_amount_value, IssuedCurrencyAmount
 from xrpl.wallet import Wallet, generate_faucet_wallet
 
 from slk.chain.chain import Chain
@@ -30,7 +31,9 @@ def wait_for_balance_change(
                 f"Balance changed {acc.account_id = } {pre_balance = } {new_bal = } "
                 f"{diff = } {final_diff = }"
             )
-            if final_diff is None or diff == final_diff:
+            if final_diff is None or math.isclose(
+                get_amount_value(diff), get_amount_value(final_diff), rel_tol=1e-5
+            ):
                 return
         chain.maybe_ledger_accept()
         time.sleep(2)
@@ -75,7 +78,10 @@ def value_diff(bigger: Amount, smaller: Amount) -> Amount:
         assert isinstance(smaller, IssuedCurrencyAmount)
         assert bigger.issuer == smaller.issuer
         assert bigger.currency == smaller.currency
-        return bigger.to_amount(int(bigger.value) - int(smaller.value))
+        try:
+            return bigger.to_amount(int(bigger.value) - int(smaller.value))
+        except:
+            return bigger.to_amount(float(bigger.value) - float(smaller.value))
 
 
 # Tests can set this to True to help debug test failures by showing account
