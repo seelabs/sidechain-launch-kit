@@ -127,6 +127,69 @@ def simple_iou_test(mc_chain: Chain, sc_chain: Chain, params: SidechainParams):
                 wait_for_balance_change(mc_chain, alice, pre_bal, rcv_asset)
 
 
+def simple_xrp_refund_test(mc_chain: Chain, sc_chain: Chain, params: SidechainParams):
+    alice = mc_chain.account_from_alias("alice")
+    # "z" accounts are always unfunded
+    nobody_sc = sc_chain.account_from_alias("zach")
+
+    # The underlying python library represents XRP amounts as strings.
+    # This makes it difficult to define arithmetic on amounts. Represent them
+    # as ints in this test, and convert to string when feeding to python functions.
+    xrp = XRP()
+
+    with tst_context(mc_chain, sc_chain):
+        to_send_drops = 1000000  # 1 XRP; less than the reserve amount
+        refund_penalty_drops = 200
+        fee = 10
+        final_diff = -(refund_penalty_drops + fee)
+        pre_bal = mc_chain.get_balance(alice, XRP())
+        main_to_side_transfer(
+            mc_chain, sc_chain, alice, nobody_sc, xrp.to_amount(to_send_drops), params
+        )
+        wait_for_balance_change(mc_chain, alice, pre_bal, xrp.to_amount(final_diff))
+
+
+def simple_iou_refund_test(mc_chain: Chain, sc_chain: Chain, params: SidechainParams):
+    alice = mc_chain.account_from_alias("alice")
+    # "z" accounts are always unfunded
+    nobody_sc = sc_chain.account_from_alias("zach")
+
+    iou_issuer = "root" if params.main_standalone else "issuer"
+    mc_asset = IssuedCurrency(
+        currency="USD", issuer=mc_chain.account_from_alias(iou_issuer).account_id
+    )
+
+    # create a trust line to alice and pay her USD.root/issuer
+    mc_chain.send_signed(
+        TrustSet(account=alice.account_id, limit_amount=mc_asset.to_amount(1_000_000))
+    )
+    mc_chain.maybe_ledger_accept()
+    mc_chain.send_signed(
+        Payment(
+            account=mc_chain.account_from_alias(iou_issuer).account_id,
+            destination=alice.account_id,
+            amount=mc_asset.to_amount(10_000),
+        )
+    )
+    mc_chain.maybe_ledger_accept()
+
+    with tst_context(mc_chain, sc_chain):
+        to_send_value = 100
+        refund_penalty = 0.02
+        pre_bal = mc_asset.to_amount(mc_chain.get_balance(alice, mc_asset))
+        main_to_side_transfer(
+            mc_chain,
+            sc_chain,
+            alice,
+            nobody_sc,
+            mc_asset.to_amount(to_send_value),
+            params,
+        )
+        wait_for_balance_change(
+            mc_chain, alice, pre_bal, mc_asset.to_amount(-refund_penalty)
+        )
+
+
 def run(mc_chain: Chain, sc_chain: Chain, params: SidechainParams):
     # process will run while stop token is non-zero
     stop_token = Value("i", 1)
@@ -138,8 +201,10 @@ def run(mc_chain: Chain, sc_chain: Chain, params: SidechainParams):
         # TODO: Tests fail without this sleep. Fix this bug.
         time.sleep(10)
         setup_accounts(mc_chain, sc_chain, params)
-        simple_xrp_test(mc_chain, sc_chain, params)
-        simple_iou_test(mc_chain, sc_chain, params)
+        # simple_xrp_test(mc_chain, sc_chain, params)
+        # simple_iou_test(mc_chain, sc_chain, params)
+        simple_xrp_refund_test(mc_chain, sc_chain, params)
+        simple_iou_refund_test(mc_chain, sc_chain, params)
     finally:
         if p:
             stop_token.value = 0
@@ -171,6 +236,8 @@ def setup_accounts(mc_chain: Chain, sc_chain: Chain, params: SidechainParams):
     mc_chain.create_account("carol")
     mc_chain.create_account("deb")
     mc_chain.create_account("ella")
+    # "z" account will always be unfunded
+    sc_chain.create_account("zelda")
     if isinstance(mc_chain, Mainchain):
         mc_chain.send_signed(
             Payment(
@@ -190,6 +257,8 @@ def setup_accounts(mc_chain: Chain, sc_chain: Chain, params: SidechainParams):
     sc_chain.create_account("charlie")
     sc_chain.create_account("dan")
     sc_chain.create_account("ed")
+    # "z" account will always be unfunded
+    sc_chain.create_account("zach")
 
 
 def multinode_test(params: SidechainParams):
